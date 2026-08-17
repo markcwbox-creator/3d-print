@@ -3,7 +3,8 @@
 Six stylized, print-ready mockups of NASA's X-59 QueSST (Quiet SuperSonic
 Technology) experimental aircraft, generated procedurally with open-source
 tooling. Every part is a validated, watertight solid, scaled and sized to
-fit a standard 220 x 220 mm FDM print bed.
+fit a standard 220 x 220 mm FDM print bed, and **every variant prints as
+one unitary object in one print job** -- including the rotating one.
 
 **These are stylized display mockups, not scale-accurate engineering
 replicas.** The fuselage shape (slender pointed nose, raised cockpit
@@ -14,18 +15,26 @@ for -- a single straight wing bar through one central hub, similar in
 spirit to NASA's AD-1 oblique-wing research aircraft -- which is not how
 the real X-59's fixed delta wings work.
 
+## Two ways to grab the files
+
+- **`models/quesst_stl_only/`** -- just the six print files, one `.stl`
+  per variant, nothing else. This is the "email it and go" folder.
+- **`models/quesst/`** -- the full kit: `.obj` **and** `.stl` for every
+  part, plus a separate accompanying display stand for each variant and
+  the sanity-check renders. See the table below.
+
 ## What's in `models/quesst/`
 
 | Folder | Contents | Description |
 |---|---|---|
-| `01_standard_swept_wing/` | 1 aircraft + 1 stand | Conventional-looking mockup: fixed, low-mounted swept delta wings, canards, single tail fin. **This is the "just send it to the printer" one.** |
-| `02_pivot_rotating_wing/` | 3 parts (A/B/C) + 1 stand | Working rotating-wing assembly (see Assembly below). |
+| `01_standard_swept_wing/` | 1 aircraft + 1 stand | Conventional-looking mockup: fixed, low-mounted swept delta wings, canards, single tail fin. **The "just send it to the printer" one.** |
+| `02_pivot_rotating_wing/` | 1 aircraft + 1 stand | Rotating-wing version -- one STL, prints pre-assembled and already spins (see Mechanism below). |
 | `03_fixed_0deg_perpendicular/` | 1 aircraft + 1 stand | Central wing bar fixed straight out, perpendicular to the fuselage (0°, conventional cross layout). |
 | `04_fixed_90deg_parallel/` | 1 aircraft + 1 stand | Central wing bar fixed parallel to the fuselage (90° rotation). |
 | `05_fixed_45deg_aft/` | 1 aircraft + 1 stand | Central wing bar fixed 45° swept aft. |
 | `06_fixed_45deg_fwd/` | 1 aircraft + 1 stand | Central wing bar fixed 45° swept forward (mirror of #5). |
 | `stands/` | 1 stand | The same universal stand file, standalone. |
-| `renders/` | PNGs | Quick orthographic sanity-check renders of every part (top/side/front). |
+| `renders/` | PNGs | Quick orthographic sanity-check renders of every part (top/side/front), plus a joint close-up for variant 2. |
 
 Every variant folder also contains its own copy of `quesst_display_stand`
 so each is a complete, self-contained "aircraft + stand" download -- the
@@ -33,11 +42,25 @@ stand is a **separate, accompanying part**, not fused to the model, exactly
 as requested. It's the same cradle design in every folder since all
 variants share the identical fuselage belly profile.
 
-Every part ships as both **`.obj`** and **`.stl`**, generated in that
-order: the `.obj` is the direct export from the modeling step, and the
-`.stl` is a straight format conversion of that same `.obj` done by a
-second, independent open-source tool (see below) -- not regenerated from
-scratch.
+Every part in `models/quesst/` ships as both **`.obj`** and **`.stl`**,
+generated in that order: the `.obj` is the direct export from the
+modeling step, and the `.stl` is a straight format conversion of that
+same `.obj` done by a second, independent open-source tool (see below) --
+not regenerated from scratch. `models/quesst_stl_only/` just has the
+`.stl` copies pulled out into one flat folder.
+
+## Every variant is one unitary print
+
+Variants 1 and 3-6 are single fused solids -- straightforward. Variant
+2's wing has to move relative to the fuselage to spin, so it can never be
+one continuous piece of plastic (if it were fused solid, it couldn't
+rotate -- that's just mechanics, not a modeling limitation). What it
+*can* be, and is, is **one STL, one print job**: the fuselage and the
+wing rotor are two separate watertight shells positioned with tiny
+(0.2-0.3 mm) clearance gaps and printed simultaneously in place, so the
+model comes off the bed already assembled, captured, and free-spinning --
+no separate cap, no post-print assembly, nothing to lose. See "Mechanism"
+below for how it's captured.
 
 ## Scale
 
@@ -67,8 +90,8 @@ desktop FDM printer.
 ## Print settings (all variants)
 
 - Material: PLA or PETG, 0.4 mm nozzle, 0.2 mm layer height.
-- Infill: 15-20% is plenty for a display piece; go 30%+ on the fuselage
-  parts of variant 2 if you want the pivot socket to feel more rigid.
+- Infill: 15-20% is plenty for a display piece; go 30%+ on variant 2 if
+  you want the pivot joint to feel more rigid.
 - **Orientation:** print the aircraft belly-down (as exported) -- this is
   the natural "resting on its landing gear" orientation, and keeps the
   bulk of the model flat against the bed. The wings sit roughly level with
@@ -78,38 +101,39 @@ desktop FDM printer.
   buildplate") for the wing undersides and fin. Tree/organic supports
   (Cura, PrusaSlicer, Bambu Studio) give the cleanest result and are
   easiest to remove.
-- The `..._pivot_B_wing_rotor` part should be reoriented in your slicer so
-  the flat wing panel lies down on the bed and the round shaft peg points
-  straight **up** (rotate 180° from how it's exported) -- that way the peg
-  prints as a short self-supporting post instead of hanging in mid-air.
-  Everything else prints fine in its as-exported orientation.
+- For variant 2, do **not** let your slicer auto-generate supports
+  *inside* the pivot joint gaps (the small clearance around the hub and
+  the belly boss) -- that would glue it solid. If your slicer offers a
+  "support blocker" / exclusion zone, drop one over the turret and belly
+  boss; otherwise it's usually fine as-is since the gaps are only
+  0.2-0.3 mm and slicers rarely try to support gaps that thin.
 - The stand needs no supports; print the groove face-up as exported.
 
-## Assembly: the rotating pivot wing (variant 2)
+## Mechanism: how the rotating wing (variant 2) is captured
 
-Three separate prints, dry-fit (no glue) so it actually spins:
+The wing spins about a vertical axis at a raised hub ("turret") on the
+fuselage spine, but it also needs to be trapped so it can't be pulled
+back out -- and a stationary wall can't fully enclose that hub without
+blocking the wing's own 360° sweep (any solid connecting the turret's
+floor to a lid would eventually collide with the wing arm as it rotates
+past). The fix: retention happens **below the fuselage**, not at the
+hub.
 
-1. **`quesst_pivot_A_fuselage`** -- fuselage with a raised dorsal turret at
-   the wing station. The turret has a shallow circular pocket (13 mm
-   pocket, 4.6 mm deep) plus a 9.2 mm-diameter hole straight through the
-   turret and fuselage down to the belly.
-2. **`quesst_pivot_B_wing_rotor`** -- the single wing bar with an integral
-   9.3 mm hub disc and an 8.6 mm-diameter shaft peg hanging off the hub's
-   underside. Drop the peg down through part A's hole from the top; the
-   hub disc seats in the shallow pocket and should spin freely (there's a
-   0.2-0.3 mm design clearance both radially and in pocket depth). The
-   shaft protrudes ~6 mm below the fuselage belly.
-3. **`quesst_pivot_C_retaining_cap`** -- a small washer-like disc with a
-   center hole sized ~0.1 mm undersized for a light interference/press fit
-   onto the protruding peg tip. Press it on by hand once the wing is
-   seated; it stops the wing from pulling back out while the assembly
-   still rotates freely against the fuselage. Add a drop of glue only if
-   you want it permanent -- left dry, it's field-serviceable.
-
-If your printer's tolerances run tighter or looser than the ~0.2-0.3 mm
-clearances baked in here, ream the pocket/hole lightly with a drill bit or
-reprint the rotor at 100.5-101% scale (or 99-99.5%) to dial in the fit --
-this is normal for FDM press/rotating fits and varies by printer.
+- The wing rotor is one connected body: wing bar + hub disc (spins in an
+  open-topped pocket in the turret) + a long shaft running down through
+  the fuselage + a wider "mushroom head" flange at the very bottom.
+- The fuselage has a small enclosed boss hanging under the belly, with a
+  cavity sized for that flange (0.3 mm clearance) that's fully closed on
+  top and bottom except for a narrow hole matching the shaft.
+- Because the flange is wider than that hole, it can't pass back out --
+  captured -- while the round pocket lets it spin freely. This works
+  because nothing ever needs to sweep through that lower spot the way the
+  wing arm sweeps through the turret, so a fully enclosing wall is
+  possible there.
+- If your printer's tolerances run tighter or looser than the 0.2-0.3 mm
+  clearances baked in here and the joint prints fused or too loose,
+  reprint variant 2 at 100.5-101% scale (or 99-99.5%) to dial in the fit
+  -- normal for FDM press/rotating fits and varies by printer.
 
 ## Family layout notes
 

@@ -1,9 +1,16 @@
 """
 Generate the full X-59 QueSST 3D-printable mockup family:
   1. Standard fixed swept-wing mockup
-  2. Central-pivot rotating oblique wing (3-part assembly)
+  2. Central-pivot rotating oblique wing -- print-in-place captured joint,
+     ONE STL containing two never-fused shells (fuselage + wing rotor)
+     that come off the printer already assembled and spinning
   3-6. Fixed central oblique wing at 0 / 90 / +45 / -45 degrees
   + a display stand accompanying every variant
+
+Every printed aircraft is a single unitary solid once printed. Variant 2
+is the one mechanical exception any rotating joint must be: it ships as
+one print job / one STL, but is necessarily two interlocked bodies
+internally -- a fused single solid cannot move relative to itself.
 
 Exports .obj for every part (numpy + trimesh + manifold3d, all OSS),
 then this script's caller (shell) converts each to .stl with assimp
@@ -16,8 +23,8 @@ import trimesh
 from geo import union, difference, check
 from parts import (
     build_fuselage, fuselage_radius_at, wing_panel, fin_panel,
-    oblique_wing_bar, oblique_shaft_peg, oblique_socket_hole,
-    turret, turret_pocket, retaining_cap,
+    oblique_wing_bar, turret, turret_pocket,
+    belly_boss, belly_flange_pocket, full_shaft_hole, rotor_shaft_and_flange,
     L, PIVOT_X, TURRET_HEIGHT, TURRET_POCKET_DEPTH,
 )
 
@@ -94,24 +101,35 @@ fuselage_turreted = union([fuselage_dressed, turret_solid], "fuselage_turreted")
 
 
 # ---------------------------------------------------------------------------
-# Variant 2: pivoting oblique wing -- 3-part assembly
+# Variant 2: pivoting oblique wing -- print-in-place captured joint.
+# One print job, one STL, two never-fused shells inside it. Retention is
+# a hidden mushroom-head flange trapped in a fully-enclosed pocket in a
+# small boss under the fuselage belly (the only place a stationary wall
+# can fully enclose the shaft without ever blocking the wing's own 360
+# degree sweep, which happens up at the turret, not down at the belly).
 # ---------------------------------------------------------------------------
-print("\n== Variant 2: pivoting oblique wing (3 parts) ==")
+print("\n== Variant 2: pivoting oblique wing (print-in-place captured joint) ==")
 pocket = turret_pocket(PIVOT_X, top_z)
-socket_hole = oblique_socket_hole(PIVOT_X, hub_z, top_z + TURRET_HEIGHT, bot_z)
-pivot_fuselage = difference(fuselage_turreted, [pocket, socket_hole], "pivot_fuselage")
+boss_solid = belly_boss(PIVOT_X, bot_z)
+flange_pocket = belly_flange_pocket(PIVOT_X, bot_z)
+shaft_hole = full_shaft_hole(PIVOT_X, top_z + TURRET_HEIGHT, bot_z)
+
+fuselage_with_boss = union([fuselage_turreted, boss_solid], "fuselage_with_boss")
+pivot_fuselage = difference(fuselage_with_boss, [pocket, flange_pocket, shaft_hole], "pivot_fuselage")
 
 wing_bar_local = oblique_wing_bar(center_x=PIVOT_X, center_z=hub_z)
-shaft = oblique_shaft_peg(PIVOT_X, hub_z, bot_z)
-pivot_wing_rotor = union([wing_bar_local, shaft], "pivot_wing_rotor")
+shaft_and_flange = rotor_shaft_and_flange(PIVOT_X, hub_z, bot_z)
+pivot_wing_rotor = union([wing_bar_local, shaft_and_flange], "pivot_wing_rotor")
 
-pivot_cap = retaining_cap()
+# Combine into ONE mesh file as two disconnected (never-fused) shells --
+# this is what "print-in-place" means: one print job, comes off the bed
+# already assembled and free to spin, nothing to lose or glue.
+pivot_combined = trimesh.util.concatenate([pivot_fuselage, pivot_wing_rotor])
+check(pivot_combined, "pivot_combined (2 shells, 1 file)")
 
 d2 = os.path.join(OUT, "02_pivot_rotating_wing")
 os.makedirs(d2, exist_ok=True)
-save_obj(pivot_fuselage, os.path.join(d2, "quesst_pivot_A_fuselage.obj"))
-save_obj(pivot_wing_rotor, os.path.join(d2, "quesst_pivot_B_wing_rotor.obj"))
-save_obj(pivot_cap, os.path.join(d2, "quesst_pivot_C_retaining_cap.obj"))
+save_obj(pivot_combined, os.path.join(d2, "quesst_pivot_rotating_wing.obj"))
 
 
 # ---------------------------------------------------------------------------

@@ -45,9 +45,7 @@ if __name__ == "__main__":
     os.makedirs(CHK, exist_ok=True)
     targets = [
         ("01_standard_swept_wing/quesst_standard_swept.obj", "v1_standard"),
-        ("02_pivot_rotating_wing/quesst_pivot_A_fuselage.obj", "v2_pivot_fuselage"),
-        ("02_pivot_rotating_wing/quesst_pivot_B_wing_rotor.obj", "v2_pivot_rotor"),
-        ("02_pivot_rotating_wing/quesst_pivot_C_retaining_cap.obj", "v2_pivot_cap"),
+        ("02_pivot_rotating_wing/quesst_pivot_rotating_wing.obj", "v2_pivot_combined"),
         ("03_fixed_0deg_perpendicular/quesst_03_fixed_0deg_perpendicular.obj", "v3_0deg"),
         ("04_fixed_90deg_parallel/quesst_04_fixed_90deg_parallel.obj", "v4_90deg"),
         ("05_fixed_45deg_aft/quesst_05_fixed_45deg_aft.obj", "v5_45aft"),
@@ -58,11 +56,11 @@ if __name__ == "__main__":
         mesh = trimesh.load(os.path.join(OUT, rel), process=False)
         render_mesh(mesh, os.path.join(CHK, name + ".png"), name)
 
-    # combined assembly preview of the pivot version (fuselage+rotor@0deg+cap)
-    fus = trimesh.load(os.path.join(OUT, "02_pivot_rotating_wing/quesst_pivot_A_fuselage.obj"), process=False)
-    rotor = trimesh.load(os.path.join(OUT, "02_pivot_rotating_wing/quesst_pivot_B_wing_rotor.obj"), process=False)
-    cap = trimesh.load(os.path.join(OUT, "02_pivot_rotating_wing/quesst_pivot_C_retaining_cap.obj"), process=False)
-    cap2 = cap.copy()
-    cap2.apply_translation((110.0, 0, -13.4 + 1.5))
-    combo = trimesh.util.concatenate([fus, rotor, cap2])
-    render_mesh(combo, os.path.join(CHK, "v2_pivot_ASSEMBLED_preview.png"), "v2_pivot_assembled")
+    # zoomed-in cutaway-ish close-up of just the pivot joint region to
+    # visually verify the flange/pocket clearance
+    combo = trimesh.load(os.path.join(OUT, "02_pivot_rotating_wing/quesst_pivot_rotating_wing.obj"), process=False)
+    v = combo.vertices
+    mask = (v[:, 0] > 85) & (v[:, 0] < 135) & (v[:, 2] < 20)
+    sub_faces = combo.faces[mask[combo.faces].all(axis=1)]
+    closeup = trimesh.Trimesh(vertices=v, faces=sub_faces, process=False)
+    render_mesh(closeup, os.path.join(CHK, "v2_pivot_JOINT_CLOSEUP.png"), "v2_pivot_joint_closeup")

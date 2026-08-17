@@ -216,3 +216,96 @@ def retaining_cap(radius=8.0, thickness=3.0, hole_radius=SHAFT_RADIUS - 0.05, se
     trimesh.repair.fix_normals(m, multibody=False)
     check(m, "retaining_cap")
     return m
+
+
+# ---------------------------------------------------------------------------
+# Print-in-place captured joint: a hidden mushroom-head flange trapped
+# inside a fully-enclosed pocket in a small boss under the fuselage belly.
+# Printed simultaneously with 0.3mm clearance gaps -- no post-print
+# assembly, nothing to lose, still spins freely. Retention happens ONLY
+# at this bottom boss (below the belly, where no wing arm ever sweeps),
+# not at the top turret -- a full 360-degree external wing can't be
+# captured by a continuous stationary wall at its OWN height without
+# blocking its own rotation, but the shaft naturally clears that
+# constraint on its way down to the belly.
+# ---------------------------------------------------------------------------
+BOSS_OUTER_R = 11.0 * MM          # matches TURRET_OUTER_R -- enough radius
+                                    # margin over the fuselage's local half
+                                    # width (~9.4mm) for a clean, robust
+                                    # boolean union (a near-zero margin here
+                                    # produced a non-manifold union in testing)
+BOSS_FLOOR = 1.0 * MM
+BOSS_CEIL = 1.0 * MM
+FLANGE_R = 6.0 * MM
+FLANGE_POCKET_R = 6.3 * MM
+FLANGE_THK = 2.0 * MM
+FLANGE_CLEARANCE = 0.3 * MM
+BOSS_CAVITY_H = FLANGE_THK + 2 * FLANGE_CLEARANCE
+BOSS_HEIGHT = BOSS_FLOOR + BOSS_CAVITY_H + BOSS_CEIL
+
+
+BOSS_EMBED = 4.0 * MM  # extra material sunk up into the solid fuselage core,
+                        # well past its curved skin, so the union has a thick
+                        # 3D overlap instead of a thin/coincident boundary
+                        # (a flush touch at the curved belly surface produced
+                        # a non-manifold union in testing).
+
+
+def belly_boss(center_x, belly_z, outer_r=BOSS_OUTER_R, embed=BOSS_EMBED, sections=48):
+    """Solid boss hanging below the fuselage belly skin, extended upward
+    into the fuselage core by `embed` for a robust boolean union. Its
+    externally-visible protrusion below the belly is unaffected."""
+    height = BOSS_HEIGHT + embed
+    top_z = belly_z + embed
+    cyl = trimesh.creation.cylinder(radius=outer_r, height=height, sections=sections)
+    cyl.apply_translation((center_x, 0, top_z - height / 2.0))
+    check(cyl, "belly_boss")
+    return cyl
+
+
+def belly_boss_cavity_center_z(belly_z):
+    boss_bottom = belly_z - BOSS_HEIGHT
+    return boss_bottom + BOSS_FLOOR + BOSS_CAVITY_H / 2.0
+
+
+def belly_flange_pocket(center_x, belly_z, pocket_r=FLANGE_POCKET_R,
+                         cavity_h=BOSS_CAVITY_H, sections=48):
+    """Fully-enclosed cavity inside the boss (floor + ceiling both solid)
+    that traps the wing rotor's flange -- captured, still free to spin."""
+    cz = belly_boss_cavity_center_z(belly_z)
+    cyl = trimesh.creation.cylinder(radius=pocket_r, height=cavity_h, sections=sections)
+    cyl.apply_translation((center_x, 0, cz))
+    check(cyl, "belly_flange_pocket")
+    return cyl
+
+
+def full_shaft_hole(center_x, top_start_z, belly_z, radius=SOCKET_RADIUS):
+    """Vertical bore from above the turret pocket down through the
+    fuselage body and the boss's ceiling, stopping just inside the top of
+    the flange cavity (the boss floor below stays solid, enclosing it)."""
+    cavity_top = belly_boss_cavity_center_z(belly_z) + BOSS_CAVITY_H / 2.0
+    bottom_z = cavity_top - 0.3  # dip slightly into the cavity for a clean union
+    height = top_start_z - bottom_z
+    cyl = trimesh.creation.cylinder(radius=radius, height=height, sections=32)
+    cyl.apply_translation((center_x, 0, (top_start_z + bottom_z) / 2.0))
+    check(cyl, "full_shaft_hole")
+    return cyl
+
+
+def rotor_shaft_and_flange(center_x, hub_z, belly_z, shaft_r=SHAFT_RADIUS,
+                            flange_r=FLANGE_R, flange_thk=FLANGE_THK):
+    """The wing rotor's shaft + captured mushroom-head flange, as one
+    connected body (to be unioned onto the wing bar/hub)."""
+    flange_cz = belly_boss_cavity_center_z(belly_z)
+    shaft_top = hub_z + HUB_THK / 2.0  # overlaps into the hub disc above
+    shaft_bottom = flange_cz - flange_thk / 2.0  # overlaps into the flange below
+    shaft_h = shaft_top - shaft_bottom
+    shaft = trimesh.creation.cylinder(radius=shaft_r, height=shaft_h, sections=32)
+    shaft.apply_translation((center_x, 0, (shaft_top + shaft_bottom) / 2.0))
+    flange = trimesh.creation.cylinder(radius=flange_r, height=flange_thk, sections=32)
+    flange.apply_translation((center_x, 0, flange_cz))
+    m = trimesh.boolean.union([shaft, flange], engine="manifold")
+    m.merge_vertices()
+    trimesh.repair.fix_normals(m, multibody=False)
+    check(m, "rotor_shaft_and_flange")
+    return m
